@@ -72,9 +72,10 @@ class PaymentService {
     required String merchantId,
   }) async {
     try {
-      final wallet = _storage.getWallet();
+      // Get/create merchant wallet
+      var wallet = _storage.getMerchantWallet(merchantId);
       if (wallet == null) {
-        return {'success': false, 'error': 'Wallet not found'};
+        return {'success': false, 'error': 'Could not create merchant wallet'};
       }
 
       final transaction = Transaction(
@@ -97,8 +98,9 @@ class PaymentService {
         lastUpdated: DateTime.now(),
       );
 
-      await _storage.addTransaction(transaction);
-      await _storage.saveWallet(updatedWallet);
+      // Save merchant transaction and wallet
+      await _storage.addMerchantTransaction(merchantId, transaction);
+      await _storage.updateMerchantWallet(merchantId, updatedWallet);
 
       _syncService.syncTransaction(transaction);
 
@@ -106,11 +108,10 @@ class PaymentService {
         'success': true,
         'transaction': transaction,
         'wallet': updatedWallet,
+        'merchantId': merchantId,
       };
     } catch (e) {
       return {'success': false, 'error': e.toString()};
     }
   }
 }
-
-

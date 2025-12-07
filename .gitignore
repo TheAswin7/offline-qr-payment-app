@@ -43,6 +43,14 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Flutter APK builds
+build/
+
+# Android Gradle cache files
+android/.gradle/
+/android/app/build/
+/android/build/
+
 # iOS/XCode related
 **/ios/**/*.mode1v3
 **/ios/**/*.mode2v3
@@ -81,5 +89,3 @@ coverage/
 !**/ios/**/default.mode2v3
 !**/ios/**/default.pbxuser
 !**/ios/**/default.perspectivev3
-
-

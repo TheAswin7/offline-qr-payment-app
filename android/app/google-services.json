@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "663571669316",
+    "project_id": "qr-payment-app-a2f20",
+    "storage_bucket": "qr-payment-app-a2f20.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:663571669316:android:2b169fc47ac59ea3063711",
+        "android_client_info": {
+          "package_name": "com.example.offline_qr_payment"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC0u-UV3ajgvKPxkLpOnhkO_pSzmDfULt4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

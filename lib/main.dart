@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -13,7 +14,10 @@ import 'utils/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
+  // Initialize Firebase
+  await Firebase.initializeApp();
+
   // Initialize storage
   final prefs = await SharedPreferences.getInstance();
   final storageService = StorageService(prefs);
@@ -64,4 +68,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-

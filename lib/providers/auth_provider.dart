@@ -14,7 +14,7 @@ class AuthProvider with ChangeNotifier {
 
   AuthProvider(StorageService storage)
       : _storage = storage {
-    _authService = AuthService(_storage, ApiService());
+    _authService = AuthService(_storage);
     _loadUser();
   }
 
@@ -120,5 +120,3 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 }
-
-

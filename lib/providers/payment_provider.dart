@@ -74,6 +74,29 @@ class PaymentProvider with ChangeNotifier {
     }
   }
 
+  // NEW: Process merchant receiving payment
+  Future<Map<String, dynamic>> processMerchantPayment({
+    required String amount,
+    required User customer,
+    required String merchantId,
+  }) async {
+    try {
+      final result = await _paymentService.receivePayment(
+        amount: amount,
+        payer: customer,
+        merchantId: merchantId,
+      );
+
+      if (result['success'] == true) {
+        return result;
+      } else {
+        return result;
+      }
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
   void reset() {
     _currentTransaction = null;
     _selectedMerchant = null;
@@ -87,5 +110,3 @@ class PaymentProvider with ChangeNotifier {
     notifyListeners();
   }
 }
-
-

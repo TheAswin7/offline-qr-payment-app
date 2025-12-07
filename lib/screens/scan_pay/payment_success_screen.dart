@@ -14,7 +14,7 @@ class PaymentSuccessScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -44,30 +44,34 @@ class PaymentSuccessScreen extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 'Paid to ${transaction.counterpartyName}',
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.grey[600],
                 ),
               ),
               const SizedBox(height: 48),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ReceiptScreen(
-                          transaction: transaction,
+              Container(
+                constraints: const BoxConstraints(maxWidth: 320),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ReceiptScreen(
+                            transaction: transaction,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.qr_code),
-                  label: const Text('Show Receipt QR to Merchant'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                      );
+                    },
+                    icon: const Icon(Icons.qr_code),
+                    label: const Text('Show Receipt QR to Merchant'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
                   ),
                 ),
               ),
@@ -78,6 +82,7 @@ class PaymentSuccessScreen extends StatelessWidget {
                 },
                 child: const Text('Back to Home'),
               ),
+              const SizedBox(height: 20), // Bottom padding
             ],
           ),
         ),
@@ -85,5 +90,3 @@ class PaymentSuccessScreen extends StatelessWidget {
     );
   }
 }
-
-

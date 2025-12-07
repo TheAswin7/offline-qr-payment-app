@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../providers/auth_provider.dart';
-import '../services/storage_service.dart';
-import '../utils/app_router.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -12,389 +11,343 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _biometricEnabled = false;
-  String _selectedLanguage = 'en';
-  final TextEditingController _otpController = TextEditingController();
-  final TextEditingController _newPinController = TextEditingController();
-  final TextEditingController _confirmPinController = TextEditingController();
-  bool _obscureNewPin = true;
-  bool _obscureConfirmPin = true;
-
-  final List<Map<String, String>> _languages = [
-    {'code': 'en', 'name': 'English'},
-    {'code': 'hi', 'name': 'हिंदी'},
-    {'code': 'ta', 'name': 'தமிழ்'},
-  ];
+  late bool _biometricEnabled;
+  late String _language;
 
   @override
   void initState() {
     super.initState();
-    _loadSettings();
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    _biometricEnabled = authProvider.storage.isBiometricEnabled();
+    _language = authProvider.storage.getLanguage();
   }
 
   @override
-  void dispose() {
-    _otpController.dispose();
-    _newPinController.dispose();
-    _confirmPinController.dispose();
-    super.dispose();
-  }
+  Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
 
-  Future<void> _loadSettings() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    // Access storage service through auth provider
-    final storage = (authProvider as dynamic)._storage as StorageService?;
-    if (storage != null) {
-      setState(() {
-        _biometricEnabled = storage.isBiometricEnabled();
-        _selectedLanguage = storage.getLanguage();
-      });
-    }
-  }
-
-  Future<void> _toggleBiometric(bool value) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final storage = (authProvider as dynamic)._storage as StorageService?;
-
-    if (value) {
-      // Check if biometric is available
-      final isAvailable = await authProvider.isBiometricAvailable();
-      if (!isAvailable) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Biometric authentication not available')),
-        );
-        return;
-      }
-    }
-
-    if (storage != null) {
-      await storage.setBiometricEnabled(value);
-      setState(() {
-        _biometricEnabled = value;
-      });
-    }
-  }
-
-  Future<void> _changeLanguage(String language) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final storage = (authProvider as dynamic)._storage as StorageService?;
-
-    if (storage != null) {
-      await storage.setLanguage(language);
-      setState(() {
-        _selectedLanguage = language;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Language changed')),
-      );
-    }
-  }
-
-  Future<void> _requestOtpForPinChange() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    if (authProvider.user == null) return;
-
-    final success = await authProvider.sendOtp(authProvider.user!.phoneNumber);
-    if (success) {
-      _showChangePinDialog();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(authProvider.error ?? 'Failed to send OTP')),
-      );
-    }
-  }
-
-  void _showChangePinDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Change Wallet PIN'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _otpController,
-                keyboardType: TextInputType.number,
-                maxLength: 6,
-                decoration: const InputDecoration(
-                  labelText: 'Enter OTP',
-                  hintText: '123456',
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _newPinController,
-                keyboardType: TextInputType.number,
-                obscureText: _obscureNewPin,
-                maxLength: 6,
-                decoration: InputDecoration(
-                  labelText: 'New PIN',
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscureNewPin ? Icons.visibility : Icons.visibility_off,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscureNewPin = !_obscureNewPin;
-                      });
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _confirmPinController,
-                keyboardType: TextInputType.number,
-                obscureText: _obscureConfirmPin,
-                maxLength: 6,
-                decoration: InputDecoration(
-                  labelText: 'Confirm PIN',
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscureConfirmPin
-                          ? Icons.visibility
-                          : Icons.visibility_off,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscureConfirmPin = !_obscureConfirmPin;
-                      });
-                    },
-                  ),
-                ),
-              ),
-            ],
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Settings'),
+      ),
+      body: ListView(
+        children: [
+          // Account Section
+          const _SectionHeader('Account'),
+          ListTile(
+            leading: const Icon(Icons.account_circle),
+            title: const Text('Account Information'),
+            subtitle: Text(authProvider.user?.name ?? 'N/A'),
+            onTap: () {},
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _otpController.clear();
-              _newPinController.clear();
-              _confirmPinController.clear();
+          ListTile(
+            leading: const Icon(Icons.phone),
+            title: const Text('Phone Number'),
+            subtitle: Text(authProvider.user?.phoneNumber ?? 'N/A'),
+            onTap: () {},
+          ),
+          const Divider(),
+
+          // Security Section
+          const _SectionHeader('Security'),
+          ListTile(
+            leading: const Icon(Icons.lock),
+            title: const Text('Change PIN'),
+            onTap: () => _showChangePinDialog(),
+          ),
+          SwitchListTile(
+            title: const Text('Biometric Authentication'),
+            subtitle: const Text('Use fingerprint or face ID'),
+            value: _biometricEnabled,
+            secondary: const Icon(Icons.fingerprint),
+            onChanged: (value) async {
+              if (value && !await authProvider.isBiometricAvailable()) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Biometric not available on this device'),
+                  ),
+                );
+                return;
+              }
+
+              setState(() => _biometricEnabled = value);
+              await authProvider.storage.setBiometricEnabled(value);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    value ? 'Biometric enabled' : 'Biometric disabled',
+                  ),
+                ),
+              );
             },
-            child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            onPressed: _confirmPinChange,
-            child: const Text('Change PIN'),
+          const Divider(),
+
+          // Preferences Section
+          const _SectionHeader('Preferences'),
+          ListTile(
+            leading: const Icon(Icons.language),
+            title: const Text('Language'),
+            subtitle: Text(_getLanguageName(_language)),
+            onTap: () => _showLanguageDialog(),
+          ),
+          ListTile(
+            leading: const Icon(Icons.info),
+            title: const Text('About'),
+            subtitle: const Text('Version 1.0.0'),
+            onTap: () {},
+          ),
+          const Divider(),
+
+          // Data Section
+          const _SectionHeader('Data & Privacy'),
+          ListTile(
+            leading: const Icon(Icons.storage),
+            title: const Text('Clear Cache'),
+            onTap: () => _showClearCacheDialog(),
+          ),
+          ListTile(
+            leading: const Icon(Icons.privacy_tip),
+            title: const Text('Privacy Policy'),
+            onTap: () {},
+          ),
+          const Divider(),
+
+          // Account Actions
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: ElevatedButton.icon(
+              onPressed: () => _showLogoutDialog(context),
+              icon: const Icon(Icons.logout),
+              label: const Text('Logout'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _confirmPinChange() async {
-    if (_otpController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter OTP')),
-      );
-      return;
-    }
+  void _showChangePinDialog() {
+    final pinController = TextEditingController();
+    final confirmController = TextEditingController();
 
-    if (_newPinController.text.isEmpty || _newPinController.text.length < 4) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PIN must be at least 4 digits')),
-      );
-      return;
-    }
-
-    if (_newPinController.text != _confirmPinController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PINs do not match')),
-      );
-      return;
-    }
-
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    if (authProvider.user == null) return;
-
-    // Verify OTP
-    final otpVerified = await authProvider.verifyOtp(
-      authProvider.user!.phoneNumber,
-      _otpController.text,
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Change PIN'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: pinController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'New PIN',
+                hintText: 'Enter 4-6 digits',
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: confirmController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Confirm PIN',
+              ),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (pinController.text == confirmController.text &&
+                  pinController.text.isNotEmpty) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('PIN changed successfully')),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('PINs do not match')),
+                );
+              }
+            },
+            child: const Text('Update'),
+          ),
+        ],
+      ),
     );
-
-    if (!otpVerified) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid OTP')),
-      );
-      return;
-    }
-
-    // Set new PIN
-    final success = await authProvider.setPin(_newPinController.text);
-
-    if (success) {
-      Navigator.pop(context);
-      _otpController.clear();
-      _newPinController.clear();
-      _confirmPinController.clear();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PIN changed successfully')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to change PIN')),
-      );
-    }
   }
 
-  Future<void> _logout() async {
-    final confirm = await showDialog<bool>(
+  void _showLanguageDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Language'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _LanguageOption(
+              label: 'English',
+              code: 'en',
+              selected: _language == 'en',
+              onTap: () {
+                setState(() => _language = 'en');
+                Provider.of<AuthProvider>(context, listen: false)
+                    .storage
+                    .setLanguage('en');
+                Navigator.pop(context);
+              },
+            ),
+            _LanguageOption(
+              label: 'हिन्दी (Hindi)',
+              code: 'hi',
+              selected: _language == 'hi',
+              onTap: () {
+                setState(() => _language = 'hi');
+                Provider.of<AuthProvider>(context, listen: false)
+                    .storage
+                    .setLanguage('hi');
+                Navigator.pop(context);
+              },
+            ),
+            _LanguageOption(
+              label: 'தமிழ் (Tamil)',
+              code: 'ta',
+              selected: _language == 'ta',
+              onTap: () {
+                setState(() => _language = 'ta');
+                Provider.of<AuthProvider>(context, listen: false)
+                    .storage
+                    .setLanguage('ta');
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showClearCacheDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear Cache'),
+        content:
+            const Text('Are you sure you want to clear all cached data?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Cache cleared')),
+              );
+            },
+            child: const Text('Clear'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Logout'),
         content: const Text('Are you sure you want to logout?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () async {
+              final authProvider =
+                  Provider.of<AuthProvider>(context, listen: false);
+              await authProvider.logout();
+              if (mounted) {
+                Navigator.of(context).pushReplacementNamed('/');
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Logout'),
           ),
         ],
       ),
     );
+  }
 
-    if (confirm == true) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      await authProvider.logout();
-      if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          AppRouter.onboarding,
-          (route) => false,
-        );
-      }
+  String _getLanguageName(String code) {
+    switch (code) {
+      case 'hi':
+        return 'हिन्दी (Hindi)';
+      case 'ta':
+        return 'தமிழ் (Tamil)';
+      default:
+        return 'English';
     }
   }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+
+  const _SectionHeader(this.title);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings & Security'),
-      ),
-      body: ListView(
-        children: [
-          // Security Section
-          const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Text(
-              'Security',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.lock),
-            title: const Text('Change Wallet PIN'),
-            subtitle: const Text('Requires OTP verification'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _requestOtpForPinChange,
-          ),
-          Consumer<AuthProvider>(
-            builder: (context, authProvider, child) {
-              return SwitchListTile(
-                secondary: const Icon(Icons.fingerprint),
-                title: const Text('Biometric Authentication'),
-                subtitle: const Text('Use fingerprint or face ID'),
-                value: _biometricEnabled,
-                onChanged: _toggleBiometric,
-              );
-            },
-          ),
-          const Divider(),
-          // Language Section
-          const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Text(
-              'Language',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          ..._languages.map((lang) {
-            return RadioListTile<String>(
-              title: Text(lang['name']!),
-              value: lang['code']!,
-              groupValue: _selectedLanguage,
-              onChanged: (value) {
-                if (value != null) {
-                  _changeLanguage(value);
-                }
-              },
-            );
-          }),
-          const Divider(),
-          // Account Section
-          const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Text(
-              'Account',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text('Logout'),
-            onTap: _logout,
-          ),
-          const Divider(),
-          // Help Section
-          const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Text(
-              'Help & Support',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.phone_disabled),
-            title: const Text('Report Lost Phone'),
-            subtitle: const Text(
-              'Contact support immediately if your phone is lost or stolen',
-            ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Report Lost Phone'),
-                  content: const Text(
-                    'If your phone is lost or stolen, contact support immediately at:\n\n'
-                    'Support: +91-1800-XXX-XXXX\n'
-                    'Email: support@example.com\n\n'
-                    'Your wallet can be temporarily disabled to prevent unauthorized access.',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('OK'),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          color: Colors.blue,
+        ),
       ),
     );
   }
 }
 
+class _LanguageOption extends StatelessWidget {
+  final String label;
+  final String code;
+  final bool selected;
+  final VoidCallback onTap;
 
+  const _LanguageOption({
+    required this.label,
+    required this.code,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Text(label),
+      trailing: selected
+          ? const Icon(Icons.check_circle, color: Colors.blue)
+          : const Icon(Icons.circle_outlined),
+      onTap: onTap,
+    );
+  }
+}

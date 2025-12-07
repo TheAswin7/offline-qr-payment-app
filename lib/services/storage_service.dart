@@ -63,6 +63,56 @@ class StorageService {
     await saveTransactions(transactions);
   }
 
+  // Merchant Wallets (for offline QR payments)
+  Future<void> saveMerchantWallet(String merchantId, Wallet wallet) async {
+    await _prefs.setString('merchant_wallet_$merchantId', jsonEncode(wallet.toJson()));
+  }
+
+  Wallet? getMerchantWallet(String merchantId) {
+    final walletJson = _prefs.getString('merchant_wallet_$merchantId');
+    if (walletJson == null) {
+      // Create default merchant wallet if it doesn't exist
+      final defaultWallet = Wallet(
+        userId: merchantId,
+        offlineBalance: '0.00',
+        onlineBalance: '0.00',
+        offlineLimit: '10000.00',
+        lastUpdated: DateTime.now(),
+      );
+      saveMerchantWallet(merchantId, defaultWallet);
+      return defaultWallet;
+    }
+    return Wallet.fromJson(jsonDecode(walletJson));
+  }
+
+  Future<void> updateMerchantWallet(String merchantId, Wallet wallet) async {
+    await _prefs.setString('merchant_wallet_$merchantId', jsonEncode(wallet.toJson()));
+  }
+
+  // Add merchant transaction
+  Future<void> addMerchantTransaction(String merchantId, Transaction transaction) async {
+    final key = 'merchant_transactions_$merchantId';
+    final transactionsJson = _prefs.getString(key);
+    List<Transaction> transactions = [];
+
+    if (transactionsJson != null) {
+      final List<dynamic> decoded = jsonDecode(transactionsJson);
+      transactions = decoded.map((json) => Transaction.fromJson(json)).toList();
+    }
+
+    transactions.insert(0, transaction); // Add to beginning
+    final transactionsJsonNew = transactions.map((t) => t.toJson()).toList();
+    await _prefs.setString(key, jsonEncode(transactionsJsonNew));
+  }
+
+  List<Transaction> getMerchantTransactions(String merchantId) {
+    final key = 'merchant_transactions_$merchantId';
+    final transactionsJson = _prefs.getString(key);
+    if (transactionsJson == null) return [];
+    final List<dynamic> decoded = jsonDecode(transactionsJson);
+    return decoded.map((json) => Transaction.fromJson(json)).toList();
+  }
+
   // Biometric
   Future<void> setBiometricEnabled(bool enabled) async {
     await _prefs.setBool('biometric_enabled', enabled);
@@ -90,5 +140,3 @@ class StorageService {
     return _prefs.getBool('onboarded') ?? false;
   }
 }
-
-
